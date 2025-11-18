@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile - BookVault</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+          <i class="fas fa-book"></i> BookVault
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="{{ url_for('profile') }}"
+                >My Profile</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      <!-- User Info -->
+      <div class="row mb-5">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <h2>
+                {{ user.first_name }} {{ user.last_name }}
+                <small class="text-muted">@{{ user.username }}</small>
+              </h2>
+              <p class="text-muted">{{ user.email }}</p>
+              {% if user.bio %}
+              <p>{{ user.bio }}</p>
+              {% endif %}
+              <p class="text-muted small">
+                Member since {{ user.registration_date.strftime('%B %Y') }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reading Statistics -->
+      <div class="row mb-5">
+        <div class="col-md-3">
+          <div class="card text-center stat-card">
+            <div class="card-body">
+              <h3 class="text-primary">{{ stats.books_read }}</h3>
+              <p class="text-muted mb-0">Books Read</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center stat-card">
+            <div class="card-body">
+              <h3 class="text-warning">{{ stats.currently_reading }}</h3>
+              <p class="text-muted mb-0">Currently Reading</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center stat-card">
+            <div class="card-body">
+              <h3 class="text-success">{{ stats.want_to_read }}</h3>
+              <p class="text-muted mb-0">Want to Read</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center stat-card">
+            <div class="card-body">
+              <h3 class="text-info">
+                {{ "%.1f"|format(stats.avg_rating_given) }}
+              </h3>
+              <p class="text-muted mb-0">Avg Rating Given</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabbed Book Shelves -->
+      <ul class="nav nav-tabs" id="shelfTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            id="want-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#want-to-read"
+            type="button"
+          >
+            Want to Read ({{ want_to_read|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="currently-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#currently-reading"
+            type="button"
+          >
+            Currently Reading ({{ currently_reading|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="read-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#read"
+            type="button"
+          >
+            Read ({{ read_books|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="reviews-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#reviews"
+            type="button"
+          >
+            My Reviews ({{ user_reviews|length }})
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content mt-4" id="shelfTabsContent">
+        <!-- Want to Read Tab -->
+        <div
+          class="tab-pane fade show active"
+          id="want-to-read"
+          role="tabpanel"
+        >
+          <div class="row">
+            {% for book in want_to_read %}
+            <div class="col-md-3 col-sm-6 mb-4">
+              <div class="book-card-simple">
+                <a href="{{ url_for('book_details', book_id=book.book_id) }}">
+                  <img
+                    src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                    class="img-fluid rounded"
+                    alt="{{ book.title }}"
+                  />
+                  <h6 class="mt-2">
+                    {{ book.title[:40] }}{{ '...' if book.title|length > 40 else
+                    '' }}
+                  </h6>
+                  <p class="text-muted small">
+                    {{ book.author[:30] }}{{ '...' if book.author|length > 30
+                    else '' }}
+                  </p>
+                </a>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No books in this shelf yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Currently Reading Tab -->
+        <div class="tab-pane fade" id="currently-reading" role="tabpanel">
+          <div class="row">
+            {% for book in currently_reading %}
+            <div class="col-md-4 mb-4">
+              <div class="card book-card">
+                <div class="row g-0">
+                  <div class="col-4">
+                    <img
+                      src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                      class="img-fluid rounded-start"
+                      alt="{{ book.title }}"
+                    />
+                  </div>
+                  <div class="col-8">
+                    <div class="card-body">
+                      <h6 class="card-title">
+                        {{ book.title[:35] }}{{ '...' if book.title|length > 35
+                        else '' }}
+                      </h6>
+                      <p class="card-text text-muted small">
+                        {{ book.author }}
+                      </p>
+                      <div class="progress mb-2">
+                        <div
+                          class="progress-bar bg-success"
+                          role="progressbar"
+                          style="width: {{ book.progress_percentage }}%"
+                        >
+                          {{ book.progress_percentage }}%
+                        </div>
+                      </div>
+                      <input
+                        type="range"
+                        class="form-range"
+                        min="0"
+                        max="100"
+                        value="{{ book.progress_percentage }}"
+                        onchange="updateProgress({{ book.book_id }}, this.value)"
+                      />
+                      <a
+                        href="{{ url_for('book_details', book_id=book.book_id) }}"
+                        class="btn btn-sm btn-primary mt-2"
+                        >View</a
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No books currently reading.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Read Tab -->
+        <div class="tab-pane fade" id="read" role="tabpanel">
+          <div class="row">
+            {% for book in read_books %}
+            <div class="col-md-3 col-sm-6 mb-4">
+              <div class="book-card-simple">
+                <a href="{{ url_for('book_details', book_id=book.book_id) }}">
+                  <img
+                    src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                    class="img-fluid rounded"
+                    alt="{{ book.title }}"
+                  />
+                  <h6 class="mt-2">
+                    {{ book.title[:40] }}{{ '...' if book.title|length > 40 else
+                    '' }}
+                  </h6>
+                  <p class="text-muted small">
+                    {{ book.author[:30] }}{{ '...' if book.author|length > 30
+                    else '' }}
+                  </p>
+                  {% if book.date_finished %}
+                  <p class="text-muted small">
+                    Finished: {{ book.date_finished.strftime('%b %Y') }}
+                  </p>
+                  {% endif %}
+                </a>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No books marked as read yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Reviews Tab -->
+        <div class="tab-pane fade" id="reviews" role="tabpanel">
+          {% for review in user_reviews %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="d-flex">
+                <img
+                  src="{{ review.cover_image_url or 'https://via.placeholder.com/80x120?text=No+Cover' }}"
+                  class="review-book-cover me-3"
+                  alt="{{ review.title }}"
+                />
+                <div class="flex-grow-1">
+                  <h5 class="card-title">{{ review.title }}</h5>
+                  <p class="text-muted">{{ review.author }}</p>
+                  <div class="stars mb-2">
+                    {% for i in range(review.rating) %}
+                    <i class="fas fa-star text-warning"></i>
+                    {% endfor %} {% for i in range(5 - review.rating) %}
+                    <i class="far fa-star text-warning"></i>
+                    {% endfor %}
+                  </div>
+                  <p class="card-text">{{ review.review_text }}</p>
+                  <p class="text-muted small">
+                    {{ review.review_date.strftime('%B %d, %Y') }}
+                  </p>
+                  <div class="mt-2">
+                    <a
+                      href="{{ url_for('book_details', book_id=review.book_id) }}"
+                      class="btn btn-sm btn-outline-primary"
+                      >View Book</a
+                    >
+                    <button
+                      class="btn btn-sm btn-outline-danger"
+                      onclick="deleteReview({{ review.review_id }})"
+                    >
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-muted">You haven't written any reviews yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+      <div class="container">
+        <p>&copy; 2025 BookVault.</p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

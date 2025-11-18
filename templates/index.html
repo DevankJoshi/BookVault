@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BookVault - Your Personal Library</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+          <i class="fas fa-book"></i> BookVault
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+            </li>
+            {% if user %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('profile') }}">My Profile</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}"
+                >Logout ({{ user.username }})</a
+              >
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#loginModal"
+                >Login</a
+              >
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#registerModal"
+                >Register</a
+              >
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %} {% endwith %}
+
+    <!-- Search Bar -->
+    <div class="search-hero">
+      <div class="container">
+        <h1 class="text-white text-center mb-4">
+          Discover Your Next Great Read
+        </h1>
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="input-group input-group-lg">
+              <input
+                type="text"
+                id="searchInput"
+                class="form-control"
+                placeholder="Search for books by title, author, or genre..."
+              />
+              <button
+                class="btn btn-light"
+                type="button"
+                onclick="searchBooks()"
+              >
+                <i class="fas fa-search"></i> Search
+              </button>
+            </div>
+            <div id="searchResults" class="search-results mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-5">
+      <!-- Currently Reading Section (for logged in users) -->
+      {% if user and currently_reading %}
+      <section class="mb-5">
+        <h2 class="section-title">Currently Reading</h2>
+        <div class="row">
+          {% for book in currently_reading %}
+          <div class="col-md-4 mb-4">
+            <div class="card book-card">
+              <div class="row g-0">
+                <div class="col-4">
+                  <img
+                    src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                    class="img-fluid rounded-start"
+                    alt="{{ book.title }}"
+                  />
+                </div>
+                <div class="col-8">
+                  <div class="card-body">
+                    <h5 class="card-title">
+                      {{ book.title[:40] }}{{ '...' if book.title|length > 40
+                      else '' }}
+                    </h5>
+                    <p class="card-text text-muted small">{{ book.author }}</p>
+                    <div class="progress mb-2">
+                      <div
+                        class="progress-bar bg-success"
+                        role="progressbar"
+                        style="width: {{ book.progress_percentage }}%"
+                      >
+                        {{ book.progress_percentage }}%
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      class="form-range"
+                      min="0"
+                      max="100"
+                      value="{{ book.progress_percentage }}"
+                      onchange="updateProgress({{ book.book_id }}, this.value)"
+                    />
+                    <a
+                      href="{{ url_for('book_details', book_id=book.book_id) }}"
+                      class="btn btn-sm btn-primary mt-2"
+                      >View Details</a
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Trending Books Section -->
+      {% if trending_weekly %}
+      <section class="mb-5">
+        <h2 class="section-title">Trending This Week</h2>
+        <div class="row">
+          {% for book in trending_weekly %}
+          <div class="col-md-2 col-sm-4 mb-4">
+            <div class="book-card-simple">
+              <a href="{{ url_for('book_details', book_id=book.book_id) }}">
+                <img
+                  src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                  class="img-fluid rounded"
+                  alt="{{ book.title }}"
+                />
+                <h6 class="mt-2">
+                  {{ book.title[:30] }}{{ '...' if book.title|length > 30 else
+                  '' }}
+                </h6>
+                <p class="text-muted small mb-1">
+                  {{ book.author[:25] }}{{ '...' if book.author|length > 25 else
+                  '' }}
+                </p>
+                <div class="rating">
+                  <i class="fas fa-star text-warning"></i> {{
+                  "%.1f"|format(book.average_rating|float) }}
+                </div>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %} {% if trending_monthly %}
+      <section class="mb-5">
+        <h2 class="section-title">Trending This Month</h2>
+        <div class="row">
+          {% for book in trending_monthly %}
+          <div class="col-md-2 col-sm-4 mb-4">
+            <div class="book-card-simple">
+              <a href="{{ url_for('book_details', book_id=book.book_id) }}">
+                <img
+                  src="{{ book.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                  class="img-fluid rounded"
+                  alt="{{ book.title }}"
+                />
+                <h6 class="mt-2">
+                  {{ book.title[:30] }}{{ '...' if book.title|length > 30 else
+                  '' }}
+                </h6>
+                <p class="text-muted small mb-1">
+                  {{ book.author[:25] }}{{ '...' if book.author|length > 25 else
+                  '' }}
+                </p>
+                <div class="rating">
+                  <i class="fas fa-star text-warning"></i> {{
+                  "%.1f"|format(book.average_rating|float) }}
+                </div>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Recent Reviews Section -->
+      {% if recent_reviews %}
+      <section class="mb-5">
+        <h2 class="section-title">Recent Reviews</h2>
+        <div class="row">
+          {% for review in recent_reviews %}
+          <div class="col-md-6 mb-3">
+            <div class="card review-card">
+              <div class="card-body">
+                <div class="d-flex">
+                  <img
+                    src="{{ review.cover_image_url or 'https://via.placeholder.com/80x120?text=No+Cover' }}"
+                    class="review-book-cover me-3"
+                    alt="{{ review.title }}"
+                  />
+                  <div>
+                    <h6 class="card-title">
+                      {{ review.title[:50] }}{{ '...' if review.title|length >
+                      50 else '' }}
+                    </h6>
+                    <div class="stars mb-2">
+                      {% for i in range(review.rating) %}
+                      <i class="fas fa-star text-warning"></i>
+                      {% endfor %} {% for i in range(5 - review.rating) %}
+                      <i class="far fa-star text-warning"></i>
+                      {% endfor %}
+                    </div>
+                    <p class="card-text">
+                      {{ review.review_text[:150] }}{{ '...' if
+                      review.review_text|length > 150 else '' }}
+                    </p>
+                    <p class="text-muted small mb-0">- {{ review.username }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Browse by Genre -->
+      <section class="mb-5">
+        <h2 class="section-title">Browse by Genre</h2>
+        <div class="d-flex flex-wrap gap-2">
+          <a
+            href="{{ url_for('genre_books', genre_name='Fiction') }}"
+            class="btn btn-outline-primary"
+            >Fiction</a
+          >
+          <a
+            href="{{ url_for('genre_books', genre_name='Non-Fiction') }}"
+            class="btn btn-outline-primary"
+            >Non-Fiction</a
+          >
+          <a
+            href="{{ url_for('genre_books', genre_name='Mystery') }}"
+            class="btn btn-outline-primary"
+            >Mystery</a
+          >
+          <a
+            href="{{ url_for('genre_books', genre_name='Romance') }}"
+            class="btn btn-outline-primary"
+            >Romance</a
+          >
+          <a
+            href="{{ url_for('genre_books', genre_name='Sci-Fi') }}"
+            class="btn btn-outline-primary"
+            >Sci-Fi</a
+          >
+          <a
+            href="{{ url_for('genre_books', genre_name='Fantasy') }}"
+            class="btn btn-outline-primary"
+            >Fantasy</a
+          >
+        </div>
+      </section>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Login to BookVault</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form method="POST" action="{{ url_for('login') }}">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="loginUsername" class="form-label">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="loginUsername"
+                  name="username"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="loginPassword" class="form-label">Password</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="loginPassword"
+                  name="password"
+                  required
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+              <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create Account</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form method="POST" action="{{ url_for('register') }}">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="regUsername" class="form-label">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="regUsername"
+                  name="username"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="regEmail" class="form-label">Email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="regEmail"
+                  name="email"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="regPassword" class="form-label">Password</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="regPassword"
+                  name="password"
+                  required
+                />
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="regFirstName" class="form-label"
+                    >First Name</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="regFirstName"
+                    name="first_name"
+                  />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="regLastName" class="form-label">Last Name</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="regLastName"
+                    name="last_name"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+              <button type="submit" class="btn btn-primary">Register</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+      <div class="container">
+        <p>&copy; 2025 BookVault.</p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

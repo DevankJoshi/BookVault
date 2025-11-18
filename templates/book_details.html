@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ book.title }} - BookVault</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+          <i class="fas fa-book"></i> BookVault
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+            </li>
+            {% if user %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('profile') }}">My Profile</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#loginModal"
+                >Login</a
+              >
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      <div class="row">
+        <!-- Book Details -->
+        <div class="col-md-4">
+          <img
+            src="{{ book.cover_image_url or 'https://via.placeholder.com/300x450?text=No+Cover' }}"
+            class="img-fluid rounded shadow"
+            alt="{{ book.title }}"
+          />
+
+          {% if user %}
+          <div class="mt-4">
+            <h5>Add to Shelf:</h5>
+            <div class="d-grid gap-2">
+              <button
+                class="btn btn-outline-success"
+                onclick="addToShelf({{ book.book_id }}, 'want-to-read')"
+              >
+                <i class="fas fa-bookmark"></i> Want to Read
+              </button>
+              <button
+                class="btn btn-outline-primary"
+                onclick="addToShelf({{ book.book_id }}, 'currently-reading')"
+              >
+                <i class="fas fa-book-open"></i> Currently Reading
+              </button>
+              <button
+                class="btn btn-outline-secondary"
+                onclick="addToShelf({{ book.book_id }}, 'read')"
+              >
+                <i class="fas fa-check"></i> Read
+              </button>
+            </div>
+
+            {% if user_status and user_status.status == 'currently-reading' %}
+            <div class="mt-3">
+              <label class="form-label"
+                >Reading Progress:
+                <span id="progressValue"
+                  >{{ user_status.progress_percentage }}%</span
+                ></label
+              >
+              <input
+                type="range"
+                class="form-range"
+                min="0"
+                max="100"
+                value="{{ user_status.progress_percentage }}"
+                onchange="updateProgressDisplay(this.value); updateProgress({{ book.book_id }}, this.value)"
+              />
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-8">
+          <h1>{{ book.title }}</h1>
+          <h4 class="text-muted">by {{ book.author }}</h4>
+
+          <div class="my-3">
+            <div class="rating-large">
+              <i class="fas fa-star text-warning"></i>
+              <span class="fs-4">{{ "%.2f"|format(average_rating) }}</span>
+              <span class="text-muted">({{ reviews|length }} reviews)</span>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            {% if book.isbn %}
+            <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+            {% endif %} {% if book.publication_date %}
+            <p><strong>Published:</strong> {{ book.publication_date }}</p>
+            {% endif %} {% if book.category %}
+            <p><strong>Genre:</strong> {{ book.category }}</p>
+            {% endif %} {% if book.page_count %}
+            <p><strong>Pages:</strong> {{ book.page_count }}</p>
+            {% endif %} {% if book.language %}
+            <p><strong>Language:</strong> {{ book.language }}</p>
+            {% endif %}
+          </div>
+
+          <h5>Description</h5>
+          <p>{{ book.description or 'No description available.' }}</p>
+
+          <!-- Write Review Section -->
+          {% if user %}
+          <div class="mt-5">
+            <h4>
+              {% if user_review %}Edit Your Review{% else %}Write a Review{%
+              endif %}
+            </h4>
+            <form method="POST" action="{{ url_for('submit_review') }}">
+              <input type="hidden" name="book_id" value="{{ book.book_id }}" />
+              <div class="mb-3">
+                <label class="form-label">Rating:</label>
+                <div class="star-rating">
+                  {% for i in range(1, 6) %} <input type="radio" name="rating"
+                  id="star{{ i }}" value="{{ i }}" {% if user_review and
+                  user_review.rating == i %}checked{% endif %} required>
+                  <label for="star{{ i }}">
+                    <i class="fas fa-star"></i>
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="reviewText" class="form-label">Your Review:</label>
+                <textarea
+                  class="form-control"
+                  id="reviewText"
+                  name="review_text"
+                  rows="4"
+                  required
+                >
+{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea
+                >
+              </div>
+              <button type="submit" class="btn btn-primary">
+                {% if user_review %}Update Review{% else %}Submit Review{% endif
+                %}
+              </button>
+            </form>
+          </div>
+          {% endif %}
+
+          <!-- Reviews Section -->
+          <div class="mt-5">
+            <h4>Reviews ({{ reviews|length }})</h4>
+            {% for review in reviews %}
+            <div class="card mb-3">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 class="card-title">{{ review.username }}</h6>
+                    <div class="stars mb-2">
+                      {% for i in range(review.rating) %}
+                      <i class="fas fa-star text-warning"></i>
+                      {% endfor %} {% for i in range(5 - review.rating) %}
+                      <i class="far fa-star text-warning"></i>
+                      {% endfor %}
+                    </div>
+                    <p class="card-text">{{ review.review_text }}</p>
+                    <p class="text-muted small">
+                      {{ review.review_date.strftime('%B %d, %Y') }}
+                    </p>
+                  </div>
+                  {% if user and user.user_id == review.user_id %}
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="deleteReview({{ review.review_id }})"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p class="text-muted">
+              No reviews yet. Be the first to review this book!
+            </p>
+            {% endfor %}
+          </div>
+
+          <!-- Related Books -->
+          {% if related_books %}
+          <div class="mt-5">
+            <h4>Related Books</h4>
+            <div class="row">
+              {% for related in related_books[:4] %}
+              <div class="col-md-3 mb-3">
+                <a
+                  href="{{ url_for('book_details', book_id=related.book_id) }}"
+                  class="text-decoration-none"
+                >
+                  <img
+                    src="{{ related.cover_image_url or 'https://via.placeholder.com/150x220?text=No+Cover' }}"
+                    class="img-fluid rounded"
+                    alt="{{ related.title }}"
+                  />
+                  <h6 class="mt-2">
+                    {{ related.title[:30] }}{{ '...' if related.title|length >
+                    30 else '' }}
+                  </h6>
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+      <div class="container">
+        <p>&copy; 2025 BookVault.</p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+      function updateProgressDisplay(value) {
+        document.getElementById("progressValue").textContent = value + "%";
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error - BookVault</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-book"></i> BookVault
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="error-page">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle error-icon text-warning"></i>
+                <h1 class="display-1">500</h1>
+                <h2 class="mb-4">Internal Server Error</h2>
+                <p class="lead">Something went wrong on our end. Our librarians are working hard to fix it!</p>
+                <p class="mb-4">Please try again in a few moments, or return to the homepage.</p>
+                <div>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-home"></i> Return to Home
+                    </a>
+                    <button onclick="window.location.reload()" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
