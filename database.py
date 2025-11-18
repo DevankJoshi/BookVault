@@ -252,8 +252,24 @@ def fetch_from_google_books(query, max_results=20):
                 # Extract authors
                 authors = ', '.join(volume_info.get('authors', ['Unknown']))
                 
-                # Extract thumbnail
-                thumbnail = volume_info.get('imageLinks', {}).get('thumbnail', '')
+                # Extract best available thumbnail from imageLinks
+                image_links = volume_info.get('imageLinks', {}) or {}
+                thumbnail = ''
+                # Prefer larger sizes when available
+                for key in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
+                    if key in image_links:
+                        thumbnail = image_links.get(key) or ''
+                        break
+                # Normalize to https and clean common unwanted params
+                if thumbnail:
+                    # Protocol-relative URLs (e.g. //books.google...) -> add https:
+                    if thumbnail.startswith('//'):
+                        thumbnail = 'https:' + thumbnail
+                    # Replace http with https when necessary
+                    if thumbnail.startswith('http:'):
+                        thumbnail = 'https:' + thumbnail[5:]
+                    # Remove Google-specific edge param that sometimes breaks
+                    thumbnail = thumbnail.replace('&edge=curl', '')
                 
                 # Extract categories
                 categories = ', '.join(volume_info.get('categories', ['General']))
